@@ -3,46 +3,58 @@
 <head>
 <meta charset="UTF-8" />
 <title>Fighting Game Analyzer – SF6 Coach</title>
+<link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/6/6a/Video-game-icon.png" type="image/png" />
 <style>
-  body { font-family: Arial, sans-serif; background:#0f1220; color:#eee; padding:12px; max-width:1200px; margin:auto; }
-  h1 { text-align:center; color:#6cf; margin-bottom:4px; }
-  .subtitle { text-align:center; font-size:12px; opacity:.9; margin-bottom:10px; }
-  h2 { text-align:center; font-size:14px; color:#ffd166; margin:6px 0; }
-  h3 { font-size:13px; color:#9bf6ff; margin:10px 0 4px; border-bottom:1px solid #2a2f5a; padding-bottom:2px; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  body { font-family: Arial, sans-serif; background:#0f1220; color:#eee; padding:12px; max-width:1200px; margin:auto; display:flex; flex-direction:column; min-height:100vh;}
+  header { text-align:center; background:#1b1f3a; padding:20px; border-radius:8px; margin-bottom:12px; box-shadow: 0 0 10px #000; }
+  header h1 { color:#6cf; font-size:2em; margin:0; }
+  header .subtitle { font-size:14px; color:#ffd166; margin-top:4px; opacity:.9; }
+  .name-inputs { display:flex; justify-content:center; gap:20px; margin-bottom:12px; }
+  .name-inputs input { padding:4px 8px; border-radius:4px; border:none; font-size:12px; width:120px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; flex:1; }
   .panel { background:#121634; padding:8px; border-radius:8px; }
-  .tech { background:#1b1f3a; padding:6px 8px; border-radius:6px; margin-bottom:6px;
-          display:grid; grid-template-columns:120px 30px 26px 26px 26px; gap:6px; align-items:center; font-size:12px; }
-  .tech span { font-weight:bold; }
+  .tech {
+    background:#1b1f3a; 
+    padding:6px 8px; 
+    border-radius:6px; 
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:12px;
+  }
+  .tech span.name { flex:1; font-weight:bold; }
+  .tech .counter { width:28px; text-align:center; font-weight:bold; }
+  .tech .buttons { display:flex; gap:4px; align-items:center; }
   button { padding:2px 6px; border-radius:4px; border:none; cursor:pointer; font-size:12px; }
   .inc { background:#2ecc71; }
   .dec { background:#e74c3c; }
   .info-btn { background:#3498db; color:#fff; font-weight:bold; }
   .info-panel { display:none; background:#0c102a; border-left:3px solid #3498db; padding:8px; margin:4px 0 8px; font-size:12px; }
-  .actions { display:flex; gap:8px; justify-content:center; margin:8px 0; }
+  .actions { display:flex; gap:8px; justify-content:center; margin:12px 0; }
   .actions button { background:#f1c40f; padding:6px 10px; font-size:12px; }
-  .name-inputs { display:flex; justify-content:center; gap:20px; margin-bottom:12px; }
-  .name-inputs input { padding:4px 8px; border-radius:4px; border:none; font-size:12px; width:120px; }
-  canvas { background:#fff; border-radius:6px; width:100%; height:auto; margin-top:6px; }
-  .analysis { background:#1b1f3a; padding:10px; border-radius:6px; margin-top:6px; font-size:12px; }
+  .analysis-container { display:none; flex-direction:column; gap:6px; }
+  .analysis { background:#1b1f3a; padding:10px; border-radius:6px; font-size:12px; min-height:60px; }
+  footer { text-align:center; margin-top:12px; font-size:12px; }
+  footer .footer-content { background:#1b1f3a; padding:12px; border-radius:6px; box-shadow:0 -2px 6px #000; }
+  footer .footer-content span { color:#ffd166; font-weight:bold; }
 </style>
 </head>
 <body>
 
-<h1>📊 Fighting Game Analyzer – SF6 Coach</h1>
-<div class="subtitle">
-  Marque quando o jogador <b>EXECUTAR com sucesso</b> a técnica.  
-  Automaticamente isso conta como <b>técnica SOFRIDA</b> pelo oponente.
-</div>
+<header>
+  <h1>📊 Fighting Game Analyzer – SF6 Coach</h1>
+  <div class="subtitle">Marque quando o jogador <b>executa com sucesso</b> uma técnica. Automaticamente conta como técnica sofrida pelo oponente.</div>
+</header>
 
 <div class="name-inputs">
   <div>
     <label for="name-p1">Nome do Jogador 1:</label>
-    <input type="text" id="name-p1" placeholder="Jogador 1" />
+    <input type="text" id="name-p1" placeholder="Jogador 1" oninput="updateAnalysisIfVisible()" />
   </div>
   <div>
     <label for="name-p2">Nome do Jogador 2:</label>
-    <input type="text" id="name-p2" placeholder="Jogador 2" />
+    <input type="text" id="name-p2" placeholder="Jogador 2" oninput="updateAnalysisIfVisible()" />
   </div>
 </div>
 
@@ -50,58 +62,54 @@
 
 <div class="actions">
   <button onclick="resetAll()">Resetar Tudo</button>
-  <button onclick="generateAnalysis()">Gerar Análise + Gráficos</button>
+  <button onclick="toggleAnalysis()">Gerar / Ocultar Análise</button>
 </div>
 
-<div class="grid">
+<div class="grid analysis-container" id="analysis-grid">
   <div>
-    <h2>📈 Gráfico – Jogador 1 (executadas)</h2>
-    <canvas id="chart-p1" width="500" height="260"></canvas>
+    <h2>Análise – Jogador 1</h2>
     <div class="analysis" id="analysis-p1"></div>
   </div>
   <div>
-    <h2>📈 Gráfico – Jogador 2 (executadas)</h2>
-    <canvas id="chart-p2" width="500" height="260"></canvas>
+    <h2>Análise – Jogador 2</h2>
     <div class="analysis" id="analysis-p2"></div>
   </div>
 </div>
 
+<footer>
+  <div class="footer-content">
+    <span>© [2026] por guiassys.</span> – Todos os direitos reservados.
+  </div>
+</footer>
+
 <script>
 const techniques = [
-  // 🟢 Neutro
-  { cat:"Neutro", name:"Footsies", desc:"Controle de espaço no neutro.", defense:"Aprenda o alcance dos pokes.", improve:"Use mais golpes seguros." },
-  { cat:"Neutro", name:"Whiff Punish", desc:"Punir golpes errados.", defense:"Não spame golpes no vazio.", improve:"Confirme visualmente antes de apertar." },
-  { cat:"Neutro", name:"Punish / Counter", desc:"Punir ataques errados do oponente com golpes de alcance seguro ou combo.", defense:"Evite atacar de forma previsível; saiba os frames de recovery do oponente.", improve:"Leia os padrões do adversário e responda com ataques de maior dano." },
-  { cat:"Neutro", name:"Anti-Air", desc:"Punir pulos do oponente.", defense:"Varie timing de pulo.", improve:"Reaja mais rápido aos jumps." },
-  { cat:"Neutro", name:"Zoning", desc:"Controle de espaço com golpes longos.", defense:"Walk & block; não pule no desespero.", improve:"Alterne projétil, fake e avanço." },
-  { cat:"Neutro", name:"Neutral Jump", desc:"Pular no neutro para evitar pressão.", defense:"Punir com ataque anti-air.", improve:"Use para variar tempo e distância." },
-
-  // 🔵 Pressão
-  { cat:"Pressão", name:"Okizeme", desc:"Pressão no wake-up.", defense:"Varie wake-up e não use reversal sempre.", improve:"Misture meaty, throw e shimmy." },
-  { cat:"Pressão", name:"Meaty", desc:"Ataque no wake-up.", defense:"Observe timing; varie wake-up.", improve:"Treine timing no modo treino." },
-  { cat:"Pressão", name:"Frame Trap", desc:"Punir mash fora de turno.", defense:"Respeite o turno; defenda mais.", improve:"Mude timing para não virar flowchart." },
-  { cat:"Pressão", name:"Throw", desc:"Agarrão simples para quebrar defesa.", defense:"Use tech de throw, backdash ou pulo.", improve:"Use após vantagem de frames e misture com shimmy." },
-  { cat:"Pressão", name:"Shimmy", desc:"Finta de throw para punir tech.", defense:"Use delay tech; não dê tech automático.", improve:"Varie o spacing." },
-  { cat:"Pressão", name:"Mix-up", desc:"Forçar adivinhação.", defense:"Observe padrões.", improve:"Varie opções." },
-  { cat:"Pressão", name:"Overhead", desc:"Quebra defesa baixa.", defense:"Troque para guarda em pé.", improve:"Não repita sempre do mesmo setup." },
-  { cat:"Pressão", name:"Corner Pressure", desc:"Pressão no canto.", defense:"Brigue pra sair do corner.", improve:"Trave opções de escape." },
-  { cat:"Pressão", name:"Cross Back", desc:"Passar por trás do oponente para confundir.", defense:"Observe movimentação lateral e bloqueie.", improve:"Varie timing e espaçamento." },
-
-  // 🟣 Drive System (SF6)
-  { cat:"Drive System", name:"Drive Impact", desc:"Golpe de armadura que causa wall splat.", defense:"Use counter DI, multi-hit ou throw.", improve:"Use para punir padrões." },
-  { cat:"Drive System", name:"Drive Rush", desc:"Avanço rápido para pressão/confirm.", defense:"Check de avanço.", improve:"Use para converter hits." },
-  { cat:"Drive System", name:"Drive Parry", desc:"Parry que consome Drive.", defense:"Baitar e atrasar golpes.", improve:"Use em strings previsíveis." },
-  { cat:"Drive System", name:"Perfect Parry", desc:"Parry no timing perfeito.", defense:"Varie timing/throws.", improve:"Treine reação." },
-  { cat:"Drive System", name:"Drive Reversal", desc:"Escape defensivo com Drive.", defense:"Baitar e punir.", improve:"Use quando encurralado." },
-  { cat:"Drive System", name:"Burnout Pressure", desc:"Pressão quando o oponente está em Burnout.", defense:"Evite Burnout.", improve:"Abuse do chip damage." },
-  { cat:"Drive System", name:"Air Clash", desc:"Quando ataques aéreos dos dois jogadores colidem, causando pouco ou nenhum dano.", defense:"Evite atacar no mesmo tempo que o oponente; varie altura e timing.", improve:"Use para punir jump-ins ou padrões previsíveis do adversário."},
-
-  // 🔴 Erros Comuns / Leitura
-  { cat:"Erros Comuns", name:"Bait", desc:"Provocar erro do oponente.", defense:"Não reaja no automático.", improve:"Varie recuar e atacar." },
-  { cat:"Erros Comuns", name:"Flowchart", desc:"Repetir sempre o mesmo padrão.", defense:"Punir o padrão.", improve:"Quebre seus próprios hábitos." },
-  { cat:"Erros Comuns", name:"Yolo Reversal", desc:"Abusar de reversals sem leitura.", defense:"Baitar e punir.", improve:"Use com critério." },
-  { cat:"Erros Comuns", name:"Resource Management", desc:"Uso ruim do Drive Gauge.", defense:"Forçar Burnout.", improve:"Gerencie melhor o Drive." },
-  { cat:"Erros Comuns", name:"Delay Tech", desc:"Delay na defesa de throws.", defense:"Use tech automático com leitura.", improve:"Varie tempo de defesa." },
+  { name:"Air Clash", desc:"Quando ataques aéreos dos dois jogadores colidem, causando pouco ou nenhum dano.", defense:"Evite atacar no mesmo tempo que o oponente; varie altura e timing.", improve:"Use para punir jump-ins ou padrões previsíveis do adversário."},
+  { name:"Anti-Air", desc:"Punir pulos do oponente.", defense:"Varie timing de pulo.", improve:"Reaja mais rápido aos jumps." },
+  { name:"Bait", desc:"Provocar erro do oponente.", defense:"Não reaja no automático.", improve:"Varie recuar e atacar." },
+  { name:"Burnout Pressure", desc:"Pressão quando o oponente está em Burnout.", defense:"Evite Burnout.", improve:"Abuse do chip damage." },
+  { name:"Corner Pressure", desc:"Pressão no canto.", defense:"Brigue pra sair do corner.", improve:"Trave opções de escape." },
+  { name:"Cross Back", desc:"Passar por trás do oponente para confundir.", defense:"Observe movimentação lateral e bloqueie.", improve:"Varie timing e espaçamento." },
+  { name:"Delay Tech", desc:"Delay na defesa de throws.", defense:"Use tech automático com leitura.", improve:"Varie tempo de defesa." },
+  { name:"Drive Impact", desc:"Golpe de armadura que causa wall splat.", defense:"Use counter DI, multi-hit ou throw.", improve:"Use para punir padrões." },
+  { name:"Drive Parry", desc:"Parry que consome Drive.", defense:"Baitar e atrasar golpes.", improve:"Use em strings previsíveis." },
+  { name:"Drive Reversal", desc:"Escape defensivo com Drive.", defense:"Baitar e punir.", improve:"Use quando encurralado." },
+  { name:"Drive Rush", desc:"Avanço rápido para pressão/confirm.", defense:"Check de avanço.", improve:"Use para converter hits." },
+  { name:"Footsies", desc:"Controle de espaço no neutro.", defense:"Aprenda o alcance dos pokes.", improve:"Use mais golpes seguros." },
+  { name:"Flowchart", desc:"Repetir sempre o mesmo padrão.", defense:"Punir o padrão.", improve:"Quebre seus próprios hábitos." },
+  { name:"Frame Trap", desc:"Punir mash fora de turno.", defense:"Respeite o turno; defenda mais.", improve:"Mude timing para não virar flowchart." },
+  { name:"Meaty", desc:"Ataque no wake-up.", defense:"Observe timing; varie wake-up.", improve:"Treine timing no modo treino." },
+  { name:"Mix-up", desc:"Forçar adivinhação.", defense:"Observe padrões.", improve:"Varie opções." },
+  { name:"Neutral Jump", desc:"Pular no neutro para evitar pressão.", defense:"Punir com ataque anti-air.", improve:"Use para variar tempo e distância." },
+  { name:"Okizeme", desc:"Pressão no wake-up.", defense:"Varie wake-up e não use reversal sempre.", improve:"Misture meaty, throw e shimmy." },
+  { name:"Overhead", desc:"Quebra defesa baixa.", defense:"Troque para guarda em pé.", improve:"Não repita sempre do mesmo setup." },
+  { name:"Punish / Counter", desc:"Punir ataques errados do oponente com golpes de alcance seguro ou combo.", defense:"Evite atacar de forma previsível; saiba os frames de recovery do oponente.", improve:"Leia os padrões do adversário e responda com ataques de maior dano." },
+  { name:"Resource Management", desc:"Uso ruim do Drive Gauge.", defense:"Forçar Burnout.", improve:"Gerencie melhor o Drive." },
+  { name:"Shimmy", desc:"Finta de throw para punir tech.", defense:"Use delay tech; não dê tech automático.", improve:"Varie o spacing." },
+  { name:"Throw", desc:"Agarrão simples para quebrar defesa.", defense:"Use tech de throw, backdash ou pulo.", improve:"Use após vantagem de frames e misture com shimmy." },
+  { name:"Wake-up Reversal", desc:"Reversal usado ao se levantar do chão gastando Drive ou outro recurso.", defense:"Antecipe e evite ataques previsíveis; varie seu timing.", improve:"Use com leitura do oponente; combine com bait ou backdash." },
+  { name:"Whiff Punish", desc:"Punir golpes errados.", defense:"Não spame golpes no vazio.", improve:"Confirme visualmente antes de apertar." },
+  { name:"Yolo Reversal", desc:"Abusar de reversals sem leitura.", defense:"Baitar e punir.", improve:"Use com critério." },
 ];
 
 const players = [
@@ -111,32 +119,27 @@ const players = [
 
 const panels = document.getElementById("panels");
 
+// Criar linhas de técnicas
 players.forEach(player => {
   const div = document.createElement("div");
   div.className = "panel";
-  div.innerHTML = `<h2>${player.label} – Técnicas executadas com sucesso</h2>`;
+  div.innerHTML = `<h2>${player.label}</h2>`;
 
-  let lastCat = "";
   techniques.forEach((t, i) => {
     player.executed[t.name] = 0;
     player.suffered[t.name] = 0;
-
-    if (t.cat !== lastCat) {
-      const catTitle = document.createElement("h3");
-      catTitle.innerText = t.cat;
-      div.appendChild(catTitle);
-      lastCat = t.cat;
-    }
 
     const wrap = document.createElement("div");
     const row = document.createElement("div");
     row.className = "tech";
     row.innerHTML = `
-      <span>${t.name}</span>
-      <span id="${player.id}-count-${t.name}">0</span>
-      <button class="inc" onclick="inc('${player.id}','${t.name}',1)">+</button>
-      <button class="dec" onclick="inc('${player.id}','${t.name}',-1)">-</button>
-      <button class="info-btn" onclick="toggleInfo('${player.id}-${i}')">ℹ️</button>
+      <span class="name">${t.name}</span>
+      <span class="counter" id="${player.id}-count-${t.name}">0</span>
+      <div class="buttons">
+        <button class="inc" onclick="inc('${player.id}','${t.name}',1)">+</button>
+        <button class="dec" onclick="inc('${player.id}','${t.name}',-1)">-</button>
+        <button class="info-btn" onclick="toggleInfo('${player.id}-${i}')">ℹ️</button>
+      </div>
     `;
 
     const info = document.createElement("div");
@@ -156,6 +159,7 @@ players.forEach(player => {
   panels.appendChild(div);
 });
 
+// Funções de interação
 function toggleInfo(id) {
   const el = document.getElementById(id);
   el.style.display = el.style.display === "block" ? "none" : "block";
@@ -167,6 +171,7 @@ function inc(playerId, tech, delta) {
   p.executed[tech] = Math.max(0, p.executed[tech] + delta);
   opp.suffered[tech] = Math.max(0, opp.suffered[tech] + delta);
   document.getElementById(`${playerId}-count-${tech}`).innerText = p.executed[tech];
+  updateAnalysisIfVisible();
 }
 
 function resetAll() {
@@ -177,24 +182,38 @@ function resetAll() {
       document.getElementById(`${p.id}-count-${t.name}`).innerText = 0;
     });
   });
-  clearChart("chart-p1");
-  clearChart("chart-p2");
+  hideAnalysis();
+}
+
+function toggleAnalysis() {
+  const container = document.getElementById("analysis-grid");
+  if(container.style.display === "flex") {
+    container.style.display = "none";
+  } else {
+    generateAnalysis();
+    container.style.display = "flex";
+  }
+}
+
+function hideAnalysis() {
+  document.getElementById("analysis-grid").style.display = "none";
   document.getElementById("analysis-p1").innerHTML = "";
   document.getElementById("analysis-p2").innerHTML = "";
 }
 
-function clearChart(id) {
-  const ctx = document.getElementById(id).getContext("2d");
-  ctx.clearRect(0, 0, 500, 260);
+function updateAnalysisIfVisible() {
+  const container = document.getElementById("analysis-grid");
+  if(container.style.display === "flex") {
+    generateAnalysis();
+  }
 }
 
 function generateAnalysis() {
-  // Atualizar nomes dos jogadores
   players[0].label = document.getElementById("name-p1").value || "Jogador 1";
   players[1].label = document.getElementById("name-p2").value || "Jogador 2";
 
-  drawChart("p1", "chart-p1", "analysis-p1");
-  drawChart("p2", "chart-p2", "analysis-p2");
+  drawAnalysis("p1", "analysis-p1");
+  drawAnalysis("p2", "analysis-p2");
 }
 
 function detectProfile(p) {
@@ -205,35 +224,27 @@ function detectProfile(p) {
   return { name:"Equilibrado", desc:"Mistura bem várias ferramentas." };
 }
 
-function drawChart(pid, chartId, analysisId) {
+function drawAnalysis(pid, analysisId) {
   const p = players.find(x => x.id === pid);
-  const ctx = document.getElementById(chartId).getContext("2d");
-  clearChart(chartId);
+  const totalExecuted = Object.values(p.executed).reduce((a,b)=>a+b,0);
 
-  const values = Object.values(p.executed);
-  const max = Math.max(...values, 1);
-  let x = 10;
-  const barWidth = 28;
+  if(totalExecuted === 0){
+    document.getElementById(analysisId).innerHTML = "<p>Não há informações suficientes para avaliar este jogador.</p>";
+    return;
+  }
 
   let html = `<b>🎯 ${p.label} executou mais (pode estar previsível):</b><ul>`;
   let html2 = `<b>🛡️ ${p.label} sofreu mais (treinar defesa contra):</b><ul>`;
 
+  const maxExecuted = Math.max(...Object.values(p.executed));
+  const maxSuffered = Math.max(...Object.values(p.suffered));
+
   techniques.forEach(t => {
     const v = p.executed[t.name];
     const s = p.suffered[t.name];
-    const h = (v / max) * 180;
 
-    ctx.fillStyle = "#4dabf7";
-    ctx.fillRect(x, 220 - h, barWidth, h);
-    ctx.fillStyle = "#000";
-    ctx.fillText(t.name, x, 240);
-    ctx.fillText(v, x + 6, 210 - h);
-
-    if (v === max && v > 0) html += `<li><b>${t.name}</b>: ${t.improve}</li>`;
-    if (s > 0 && s === Math.max(...Object.values(p.suffered)))
-      html2 += `<li><b>${t.name}</b>: ${t.defense}</li>`;
-
-    x += barWidth + 6;
+    if (v === maxExecuted && v > 0) html += `<li><b>${t.name}</b>: ${t.improve}</li>`;
+    if (s === maxSuffered && s > 0) html2 += `<li><b>${t.name}</b>: ${t.defense}</li>`;
   });
 
   html += "</ul>";
@@ -241,8 +252,7 @@ function drawChart(pid, chartId, analysisId) {
 
   const profile = detectProfile(p);
   document.getElementById(analysisId).innerHTML =
-    (max === 0) ? "<p>Nenhuma técnica registrada ainda.</p>"
-      : html + html2 + `<hr/><b>🧬 Padrão de jogo detectado para ${p.label}:</b> <p><b>${profile.name}</b> – ${profile.desc}</p>`;
+    html + html2 + `<hr/><b>🧬 Padrão de jogo detectado para ${p.label}:</b> <p><b>${profile.name}</b> – ${profile.desc}</p>`;
 }
 </script>
 
