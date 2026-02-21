@@ -2,16 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Análise de Técnicas – Fighting Game Analyzer (Execução + Sofridas Automáticas)</title>
+<title>Fighting Game Analyzer – SF6 Coach</title>
 <style>
   body { font-family: Arial, sans-serif; background:#0f1220; color:#eee; padding:12px; max-width:1200px; margin:auto; }
   h1 { text-align:center; color:#6cf; margin-bottom:4px; }
   .subtitle { text-align:center; font-size:12px; opacity:.9; margin-bottom:10px; }
   h2 { text-align:center; font-size:14px; color:#ffd166; margin:6px 0; }
+  h3 { font-size:13px; color:#9bf6ff; margin:10px 0 4px; border-bottom:1px solid #2a2f5a; padding-bottom:2px; }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .panel { background:#121634; padding:8px; border-radius:8px; }
   .tech { background:#1b1f3a; padding:6px 8px; border-radius:6px; margin-bottom:6px;
-          display:grid; grid-template-columns:90px 30px 26px 26px 26px; gap:6px; align-items:center; font-size:12px; }
+          display:grid; grid-template-columns:120px 30px 26px 26px 26px; gap:6px; align-items:center; font-size:12px; }
   .tech span { font-weight:bold; }
   button { padding:2px 6px; border-radius:4px; border:none; cursor:pointer; font-size:12px; }
   .inc { background:#2ecc71; }
@@ -26,7 +27,7 @@
 </head>
 <body>
 
-<h1>📊 Fighting Game Analyzer</h1>
+<h1>📊 Fighting Game Analyzer – SF6 Coach</h1>
 <div class="subtitle">
   Marque quando o jogador <b>EXECUTAR com sucesso</b> a técnica.  
   Automaticamente isso conta como <b>técnica SOFRIDA</b> pelo oponente.
@@ -54,16 +55,35 @@
 
 <script>
 const techniques = [
-  { name:"Bait", desc:"Provocar erro do oponente.", defense:"Não reaja no automático; confirme antes.", improve:"Varie entre recuar e atacar de verdade." },
-  { name:"Overhead", desc:"Quebra defesa baixa.", defense:"Troque para guarda em pé ao ver animação.", improve:"Não repita sempre do mesmo setup." },
-  { name:"Okizeme", desc:"Pressão no wake-up.", defense:"Varie wake-up e não use reversal sempre.", improve:"Misture meaty, throw e shimmy." },
-  { name:"Shimmy", desc:"Finta de throw para punir tech.", defense:"Use delay tech; não dê tech automático.", improve:"Varie o spacing para não ficar óbvio." },
-  { name:"Zoning", desc:"Controle de espaço com golpes longos.", defense:"Walk & block; não pule no desespero.", improve:"Alterne projétil, fake e avanço." },
-  { name:"Whiff Punish", desc:"Punir golpes errados.", defense:"Não spame golpes no vazio.", improve:"Confirme visualmente antes de apertar." },
-  { name:"Frame Trap", desc:"Punir mash fora de turno.", defense:"Respeite o turno; defenda mais.", improve:"Mude timing para não virar flowchart." },
-  { name:"Mix-up", desc:"Forçar adivinhação.", defense:"Observe padrões; às vezes aceite o throw.", improve:"Varie opções para não ser lido." },
-  { name:"Footsies", desc:"Controle de neutro.", defense:"Aprenda o alcance dos pokes.", improve:"Use mais golpes seguros." },
-  { name:"Meaty", desc:"Ataque no wake-up.", defense:"Observe timing; varie wake-up.", improve:"Treine timing no modo treino." }
+  // 🟢 Neutro
+  { cat:"Neutro", name:"Footsies", desc:"Controle de espaço no neutro.", defense:"Aprenda o alcance dos pokes.", improve:"Use mais golpes seguros." },
+  { cat:"Neutro", name:"Whiff Punish", desc:"Punir golpes errados.", defense:"Não spame golpes no vazio.", improve:"Confirme visualmente antes de apertar." },
+  { cat:"Neutro", name:"Anti-Air", desc:"Punir pulos do oponente.", defense:"Varie timing de pulo.", improve:"Reaja mais rápido aos jumps." },
+  { cat:"Neutro", name:"Zoning", desc:"Controle de espaço com golpes longos.", defense:"Walk & block; não pule no desespero.", improve:"Alterne projétil, fake e avanço." },
+
+  // 🔵 Pressão
+  { cat:"Pressão", name:"Okizeme", desc:"Pressão no wake-up.", defense:"Varie wake-up e não use reversal sempre.", improve:"Misture meaty, throw e shimmy." },
+  { cat:"Pressão", name:"Meaty", desc:"Ataque no wake-up.", defense:"Observe timing; varie wake-up.", improve:"Treine timing no modo treino." },
+  { cat:"Pressão", name:"Frame Trap", desc:"Punir mash fora de turno.", defense:"Respeite o turno; defenda mais.", improve:"Mude timing para não virar flowchart." },
+  { cat:"Pressão", name:"Throw", desc:"Agarrão simples para quebrar defesa.", defense:"Use tech de throw, backdash ou pulo.", improve:"Use após vantagem de frames e misture com shimmy." },
+  { cat:"Pressão", name:"Shimmy", desc:"Finta de throw para punir tech.", defense:"Use delay tech; não dê tech automático.", improve:"Varie o spacing." },
+  { cat:"Pressão", name:"Mix-up", desc:"Forçar adivinhação.", defense:"Observe padrões.", improve:"Varie opções." },
+  { cat:"Pressão", name:"Overhead", desc:"Quebra defesa baixa.", defense:"Troque para guarda em pé.", improve:"Não repita sempre do mesmo setup." },
+  { cat:"Pressão", name:"Corner Pressure", desc:"Pressão no canto.", defense:"Brigue pra sair do corner.", improve:"Trave opções de escape." },
+
+  // 🟣 Drive System (SF6)
+  { cat:"Drive System", name:"Drive Impact", desc:"Golpe de armadura que causa wall splat.", defense:"Use counter DI, multi-hit ou throw.", improve:"Use para punir padrões." },
+  { cat:"Drive System", name:"Drive Rush", desc:"Avanço rápido para pressão/confirm.", defense:"Check de avanço.", improve:"Use para converter hits." },
+  { cat:"Drive System", name:"Drive Parry", desc:"Parry que consome Drive.", defense:"Baitar e atrasar golpes.", improve:"Use em strings previsíveis." },
+  { cat:"Drive System", name:"Perfect Parry", desc:"Parry no timing perfeito.", defense:"Varie timing/throws.", improve:"Treine reação." },
+  { cat:"Drive System", name:"Drive Reversal", desc:"Escape defensivo com Drive.", defense:"Baitar e punir.", improve:"Use quando encurralado." },
+  { cat:"Drive System", name:"Burnout Pressure", desc:"Pressão quando o oponente está em Burnout.", defense:"Evite Burnout.", improve:"Abuse do chip damage." },
+
+  // 🔴 Erros Comuns / Leitura
+  { cat:"Erros Comuns", name:"Bait", desc:"Provocar erro do oponente.", defense:"Não reaja no automático.", improve:"Varie recuar e atacar." },
+  { cat:"Erros Comuns", name:"Flowchart", desc:"Repetir sempre o mesmo padrão.", defense:"Punir o padrão.", improve:"Quebre seus próprios hábitos." },
+  { cat:"Erros Comuns", name:"Yolo Reversal", desc:"Abusar de reversals sem leitura.", defense:"Baitar e punir.", improve:"Use com critério." },
+  { cat:"Erros Comuns", name:"Resource Management", desc:"Uso ruim do Drive Gauge.", defense:"Forçar Burnout.", improve:"Gerencie melhor o Drive." }
 ];
 
 const players = [
@@ -78,12 +98,19 @@ players.forEach(player => {
   div.className = "panel";
   div.innerHTML = `<h2>${player.label} – Técnicas executadas com sucesso</h2>`;
 
+  let lastCat = "";
   techniques.forEach((t, i) => {
     player.executed[t.name] = 0;
     player.suffered[t.name] = 0;
 
-    const wrap = document.createElement("div");
+    if (t.cat !== lastCat) {
+      const catTitle = document.createElement("h3");
+      catTitle.innerText = t.cat;
+      div.appendChild(catTitle);
+      lastCat = t.cat;
+    }
 
+    const wrap = document.createElement("div");
     const row = document.createElement("div");
     row.className = "tech";
     row.innerHTML = `
@@ -119,10 +146,8 @@ function toggleInfo(id) {
 function inc(playerId, tech, delta) {
   const p = players.find(x => x.id === playerId);
   const opp = players.find(x => x.id !== playerId);
-
   p.executed[tech] = Math.max(0, p.executed[tech] + delta);
   opp.suffered[tech] = Math.max(0, opp.suffered[tech] + delta);
-
   document.getElementById(`${playerId}-count-${tech}`).innerText = p.executed[tech];
 }
 
@@ -150,16 +175,23 @@ function generateAnalysis() {
   drawChart("p2", "chart-p2", "analysis-p2");
 }
 
+function detectProfile(p) {
+  const e = p.executed;
+  if ((e["Zoning"] || 0) > 3) return { name:"Zoner", desc:"Controle forte de espaço à distância." };
+  if ((e["Throw"] || 0) > 3) return { name:"Grappler", desc:"Quebra defesa com agarrões." };
+  if ((e["Okizeme"] || 0) + (e["Meaty"] || 0) > 5) return { name:"Rushdown", desc:"Pressão constante no close." };
+  return { name:"Equilibrado", desc:"Mistura bem várias ferramentas." };
+}
+
 function drawChart(pid, chartId, analysisId) {
   const p = players.find(x => x.id === pid);
-  const opp = players.find(x => x.id !== pid);
   const ctx = document.getElementById(chartId).getContext("2d");
   clearChart(chartId);
 
   const values = Object.values(p.executed);
   const max = Math.max(...values, 1);
   let x = 10;
-  const barWidth = 36;
+  const barWidth = 28;
 
   let html = "<b>🎯 O que você executou mais (pode estar previsível):</b><ul>";
   let html2 = "<b>🛡️ O que você mais sofreu (treinar defesa contra):</b><ul>";
@@ -173,20 +205,22 @@ function drawChart(pid, chartId, analysisId) {
     ctx.fillRect(x, 220 - h, barWidth, h);
     ctx.fillStyle = "#000";
     ctx.fillText(t.name, x, 240);
-    ctx.fillText(v, x + 10, 210 - h);
+    ctx.fillText(v, x + 6, 210 - h);
 
     if (v === max && v > 0) html += `<li><b>${t.name}</b>: ${t.improve}</li>`;
     if (s > 0 && s === Math.max(...Object.values(p.suffered)))
       html2 += `<li><b>${t.name}</b>: ${t.defense}</li>`;
 
-    x += barWidth + 10;
+    x += barWidth + 6;
   });
 
   html += "</ul>";
   html2 += "</ul>";
 
+  const profile = detectProfile(p);
   document.getElementById(analysisId).innerHTML =
-    (max === 0) ? "<p>Nenhuma técnica registrada ainda.</p>" : html + html2;
+    (max === 0) ? "<p>Nenhuma técnica registrada ainda.</p>"
+      : html + html2 + `<hr/><b>🧬 Padrão de jogo detectado:</b> <p><b>${profile.name}</b> – ${profile.desc}</p>`;
 }
 </script>
 
