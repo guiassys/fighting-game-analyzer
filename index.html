@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Análise de Técnicas – Fighting Game Analyzer (Execução + Sofridas Automáticas)</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#0f1220; color:#eee; padding:12px; max-width:1200px; margin:auto; }
+  h1 { text-align:center; color:#6cf; margin-bottom:4px; }
+  .subtitle { text-align:center; font-size:12px; opacity:.9; margin-bottom:10px; }
+  h2 { text-align:center; font-size:14px; color:#ffd166; margin:6px 0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .panel { background:#121634; padding:8px; border-radius:8px; }
+  .tech { background:#1b1f3a; padding:6px 8px; border-radius:6px; margin-bottom:6px;
+          display:grid; grid-template-columns:90px 30px 26px 26px 26px; gap:6px; align-items:center; font-size:12px; }
+  .tech span { font-weight:bold; }
+  button { padding:2px 6px; border-radius:4px; border:none; cursor:pointer; font-size:12px; }
+  .inc { background:#2ecc71; }
+  .dec { background:#e74c3c; }
+  .info-btn { background:#3498db; color:#fff; font-weight:bold; }
+  .info-panel { display:none; background:#0c102a; border-left:3px solid #3498db; padding:8px; margin:4px 0 8px; font-size:12px; }
+  .actions { display:flex; gap:8px; justify-content:center; margin:8px 0; }
+  .actions button { background:#f1c40f; padding:6px 10px; font-size:12px; }
+  canvas { background:#fff; border-radius:6px; width:100%; height:auto; margin-top:6px; }
+  .analysis { background:#1b1f3a; padding:10px; border-radius:6px; margin-top:6px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1>📊 Fighting Game Analyzer</h1>
+<div class="subtitle">
+  Marque quando o jogador <b>EXECUTAR com sucesso</b> a técnica.  
+  Automaticamente isso conta como <b>técnica SOFRIDA</b> pelo oponente.
+</div>
+
+<div class="grid" id="panels"></div>
+
+<div class="actions">
+  <button onclick="resetAll()">Resetar Tudo</button>
+  <button onclick="generateAnalysis()">Gerar Análise + Gráficos</button>
+</div>
+
+<div class="grid">
+  <div>
+    <h2>📈 Gráfico – Jogador 1 (executadas)</h2>
+    <canvas id="chart-p1" width="500" height="260"></canvas>
+    <div class="analysis" id="analysis-p1"></div>
+  </div>
+  <div>
+    <h2>📈 Gráfico – Jogador 2 (executadas)</h2>
+    <canvas id="chart-p2" width="500" height="260"></canvas>
+    <div class="analysis" id="analysis-p2"></div>
+  </div>
+</div>
+
+<script>
+const techniques = [
+  { name:"Bait", desc:"Provocar erro do oponente.", defense:"Não reaja no automático; confirme antes.", improve:"Varie entre recuar e atacar de verdade." },
+  { name:"Overhead", desc:"Quebra defesa baixa.", defense:"Troque para guarda em pé ao ver animação.", improve:"Não repita sempre do mesmo setup." },
+  { name:"Okizeme", desc:"Pressão no wake-up.", defense:"Varie wake-up e não use reversal sempre.", improve:"Misture meaty, throw e shimmy." },
+  { name:"Shimmy", desc:"Finta de throw para punir tech.", defense:"Use delay tech; não dê tech automático.", improve:"Varie o spacing para não ficar óbvio." },
+  { name:"Zoning", desc:"Controle de espaço com golpes longos.", defense:"Walk & block; não pule no desespero.", improve:"Alterne projétil, fake e avanço." },
+  { name:"Whiff Punish", desc:"Punir golpes errados.", defense:"Não spame golpes no vazio.", improve:"Confirme visualmente antes de apertar." },
+  { name:"Frame Trap", desc:"Punir mash fora de turno.", defense:"Respeite o turno; defenda mais.", improve:"Mude timing para não virar flowchart." },
+  { name:"Mix-up", desc:"Forçar adivinhação.", defense:"Observe padrões; às vezes aceite o throw.", improve:"Varie opções para não ser lido." },
+  { name:"Footsies", desc:"Controle de neutro.", defense:"Aprenda o alcance dos pokes.", improve:"Use mais golpes seguros." },
+  { name:"Meaty", desc:"Ataque no wake-up.", defense:"Observe timing; varie wake-up.", improve:"Treine timing no modo treino." }
+];
+
+const players = [
+  { id:"p1", label:"Jogador 1", executed:{}, suffered:{} },
+  { id:"p2", label:"Jogador 2", executed:{}, suffered:{} }
+];
+
+const panels = document.getElementById("panels");
+
+players.forEach(player => {
+  const div = document.createElement("div");
+  div.className = "panel";
+  div.innerHTML = `<h2>${player.label} – Técnicas executadas com sucesso</h2>`;
+
+  techniques.forEach((t, i) => {
+    player.executed[t.name] = 0;
+    player.suffered[t.name] = 0;
+
+    const wrap = document.createElement("div");
+
+    const row = document.createElement("div");
+    row.className = "tech";
+    row.innerHTML = `
+      <span>${t.name}</span>
+      <span id="${player.id}-count-${t.name}">0</span>
+      <button class="inc" onclick="inc('${player.id}','${t.name}',1)">+</button>
+      <button class="dec" onclick="inc('${player.id}','${t.name}',-1)">-</button>
+      <button class="info-btn" onclick="toggleInfo('${player.id}-${i}')">ℹ️</button>
+    `;
+
+    const info = document.createElement("div");
+    info.className = "info-panel";
+    info.id = `${player.id}-${i}`;
+    info.innerHTML = `
+      <b>O que é:</b> ${t.desc}<br/>
+      <b>Como usar melhor:</b> ${t.improve}<br/>
+      <b>Como se defender:</b> ${t.defense}
+    `;
+
+    wrap.appendChild(row);
+    wrap.appendChild(info);
+    div.appendChild(wrap);
+  });
+
+  panels.appendChild(div);
+});
+
+function toggleInfo(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+function inc(playerId, tech, delta) {
+  const p = players.find(x => x.id === playerId);
+  const opp = players.find(x => x.id !== playerId);
+
+  p.executed[tech] = Math.max(0, p.executed[tech] + delta);
+  opp.suffered[tech] = Math.max(0, opp.suffered[tech] + delta);
+
+  document.getElementById(`${playerId}-count-${tech}`).innerText = p.executed[tech];
+}
+
+function resetAll() {
+  players.forEach(p => {
+    techniques.forEach(t => {
+      p.executed[t.name] = 0;
+      p.suffered[t.name] = 0;
+      document.getElementById(`${p.id}-count-${t.name}`).innerText = 0;
+    });
+  });
+  clearChart("chart-p1");
+  clearChart("chart-p2");
+  document.getElementById("analysis-p1").innerHTML = "";
+  document.getElementById("analysis-p2").innerHTML = "";
+}
+
+function clearChart(id) {
+  const ctx = document.getElementById(id).getContext("2d");
+  ctx.clearRect(0, 0, 500, 260);
+}
+
+function generateAnalysis() {
+  drawChart("p1", "chart-p1", "analysis-p1");
+  drawChart("p2", "chart-p2", "analysis-p2");
+}
+
+function drawChart(pid, chartId, analysisId) {
+  const p = players.find(x => x.id === pid);
+  const opp = players.find(x => x.id !== pid);
+  const ctx = document.getElementById(chartId).getContext("2d");
+  clearChart(chartId);
+
+  const values = Object.values(p.executed);
+  const max = Math.max(...values, 1);
+  let x = 10;
+  const barWidth = 36;
+
+  let html = "<b>🎯 O que você executou mais (pode estar previsível):</b><ul>";
+  let html2 = "<b>🛡️ O que você mais sofreu (treinar defesa contra):</b><ul>";
+
+  techniques.forEach(t => {
+    const v = p.executed[t.name];
+    const s = p.suffered[t.name];
+    const h = (v / max) * 180;
+
+    ctx.fillStyle = "#4dabf7";
+    ctx.fillRect(x, 220 - h, barWidth, h);
+    ctx.fillStyle = "#000";
+    ctx.fillText(t.name, x, 240);
+    ctx.fillText(v, x + 10, 210 - h);
+
+    if (v === max && v > 0) html += `<li><b>${t.name}</b>: ${t.improve}</li>`;
+    if (s > 0 && s === Math.max(...Object.values(p.suffered)))
+      html2 += `<li><b>${t.name}</b>: ${t.defense}</li>`;
+
+    x += barWidth + 10;
+  });
+
+  html += "</ul>";
+  html2 += "</ul>";
+
+  document.getElementById(analysisId).innerHTML =
+    (max === 0) ? "<p>Nenhuma técnica registrada ainda.</p>" : html + html2;
+}
+</script>
+
+</body>
+</html>
